@@ -5,13 +5,15 @@ import com.bank.transaction.dto.*;
 import com.bank.transaction.entity.Transaction;
 import com.bank.transaction.entity.TransactionStatus;
 import com.bank.transaction.entity.TransactionType;
+import com.bank.transaction.exception.AccountServiceException;
+import com.bank.transaction.exception.InsufficientBalanceException;
+import com.bank.transaction.exception.SameAccountTransferException;
 import com.bank.transaction.repository.TransactionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.client.RestTemplate;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -21,8 +23,7 @@ import java.time.LocalDateTime;
 public class TransactionService {
     
     private final TransactionRepository transactionRepository;
-    private final RestTemplate restTemplate;
-    private static final String ACCOUNT_SERVICE_URL = "http://account-service/api/accounts";
+    private final AccountClient accountClient;
     
     @Transactional
     public TransactionResponse deposit(DepositRequest request) {
@@ -55,7 +56,7 @@ public class TransactionService {
         
         // Validate sufficient balance
         if (currentBalance.compareTo(request.getAmount()) < 0) {
-            throw new RuntimeException("Insufficient balance");
+            throw new InsufficientBalanceException("Insufficient balance for withdrawal");
         }
         
         // Calculate new balance
@@ -81,7 +82,7 @@ public class TransactionService {
     public TransactionResponse transfer(TransferRequest request) {
         // Validate from and to accounts are different
         if (request.getFromAccountId().equals(request.getToAccountId())) {
-            throw new RuntimeException("Cannot transfer to the same account");
+            throw new SameAccountTransferException("Cannot transfer to the same account");
         }
         
         // Get current balances
@@ -90,7 +91,7 @@ public class TransactionService {
         
         // Validate sufficient balance
         if (fromBalance.compareTo(request.getAmount()) < 0) {
-            throw new RuntimeException("Insufficient balance");
+            throw new InsufficientBalanceException("Insufficient balance for transfer");
         }
         
         // Calculate new balances
@@ -123,23 +124,17 @@ public class TransactionService {
     
     private BigDecimal getAccountBalance(String accountId) {
         try {
-            return restTemplate.getForObject(
-                    ACCOUNT_SERVICE_URL + "/" + accountId + "/balance",
-                    BigDecimal.class
-            );
+            return accountClient.getBalance(accountId);
         } catch (Exception e) {
-            throw new RuntimeException("Failed to fetch account balance: " + e.getMessage());
+            throw new AccountServiceException("Failed to fetch account balance", e);
         }
     }
     
     private void updateAccountBalance(String accountId, BigDecimal newBalance) {
         try {
-            restTemplate.put(
-                    ACCOUNT_SERVICE_URL + "/" + accountId + "/balance?balance=" + newBalance,
-                    null
-            );
+            accountClient.updateBalance(accountId, newBalance);
         } catch (Exception e) {
-            throw new RuntimeException("Failed to update account balance: " + e.getMessage());
+            throw new AccountServiceException("Failed to update account balance", e);
         }
     }
     

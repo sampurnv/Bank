@@ -13,4 +13,7 @@ public interface AccountClient {
     
     @GetMapping("/api/accounts/{accountId}/balance")
     BigDecimal getBalance(@PathVariable("accountId") String accountId);
+    
+    @PutMapping("/api/accounts/{accountId}/balance")
+    void updateBalance(@PathVariable("accountId") String accountId, @RequestParam("balance") BigDecimal balance);
 }

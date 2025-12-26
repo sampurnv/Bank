@@ -1,5 +1,8 @@
 package com.bank.transaction.config;
 
+import com.bank.transaction.exception.AccountServiceException;
+import com.bank.transaction.exception.InsufficientBalanceException;
+import com.bank.transaction.exception.SameAccountTransferException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
@@ -22,6 +25,27 @@ public class GlobalExceptionHandler {
             errors.put(fieldName, errorMessage);
         });
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errors);
+    }
+    
+    @ExceptionHandler(InsufficientBalanceException.class)
+    public ResponseEntity<Map<String, String>> handleInsufficientBalance(InsufficientBalanceException ex) {
+        Map<String, String> error = new HashMap<>();
+        error.put("message", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+    }
+    
+    @ExceptionHandler(SameAccountTransferException.class)
+    public ResponseEntity<Map<String, String>> handleSameAccountTransfer(SameAccountTransferException ex) {
+        Map<String, String> error = new HashMap<>();
+        error.put("message", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+    }
+    
+    @ExceptionHandler(AccountServiceException.class)
+    public ResponseEntity<Map<String, String>> handleAccountServiceException(AccountServiceException ex) {
+        Map<String, String> error = new HashMap<>();
+        error.put("message", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(error);
     }
     
     @ExceptionHandler(RuntimeException.class)
