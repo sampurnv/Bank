@@ -22,8 +22,22 @@ const Dashboard: React.FC = () => {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    loadAccounts();
-  }, [user]);
+    const loadData = async () => {
+      if (!user) return;
+      try {
+        const data = await accountService.getAccountsByUserId(user.id);
+        setAccounts(data);
+        if (data.length > 0 && !selectedAccount) {
+          setSelectedAccount(data[0]);
+        }
+      } catch (err) {
+        console.error('Failed to load accounts', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadData();
+  }, [user, selectedAccount]);
 
   useEffect(() => {
     if (selectedAccount) {
@@ -36,13 +50,12 @@ const Dashboard: React.FC = () => {
     try {
       const data = await accountService.getAccountsByUserId(user.id);
       setAccounts(data);
-      if (data.length > 0 && !selectedAccount) {
-        setSelectedAccount(data[0]);
+      if (data.length > 0) {
+        const current = data.find(acc => acc.id === selectedAccount?.id) || data[0];
+        setSelectedAccount(current);
       }
     } catch (err) {
       console.error('Failed to load accounts', err);
-    } finally {
-      setLoading(false);
     }
   };
 
